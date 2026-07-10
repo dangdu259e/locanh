@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Thư viện ảnh Chất lượng cao</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <header class="top-bar">
+        <div class="stats">Đã chọn: <span id="selected-count" class="highlight">0</span> ảnh</div>
+        <div class="sync-status" id="sync-status">Đang kết nối...</div>
+    </header>
+
+    <main class="gallery-container" id="gallery"></main>
+
+    <!-- Modal Lightbox (Xem ảnh toàn màn hình) -->
+    <div id="lightbox" class="lightbox hidden">
+        <button class="lb-close" id="lb-close">✕</button>
+        <button class="lb-nav lb-prev" id="lb-prev">❮</button>
+        <button class="lb-nav lb-next" id="lb-next">❯</button>
+
+        <div class="lb-content">
+            <img id="lb-img" src="" alt="Zoomed Image">
+            <div class="lb-toolbar">
+                <span id="lb-title" class="lb-title"></span>
+                <button id="lb-heart" class="heart-btn large">❤️</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nhúng File Dữ liệu TRƯỚC, File Logic SAU -->
+    <script src="danh_sach_anh.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>

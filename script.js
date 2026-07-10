@@ -15,16 +15,11 @@ async function fetchSelections() {
         const response = await fetch(API_URL);
         const data = await response.json();
         selectedImages = new Set(data);
-        updateUI();
-        renderGallery();
-        syncStatus.textContent = "✓ Đã đồng bộ";
-        syncStatus.style.background = "#e8f8f5";
-        syncStatus.style.color = "#27ae60";
+        updateUI(); renderGallery();
+        syncStatus.textContent = "✓ Đã đồng bộ"; syncStatus.style.background = "#e8f8f5"; syncStatus.style.color = "#27ae60";
         setTimeout(() => syncStatus.style.opacity = '0', 3000);
     } catch (error) {
-        syncStatus.textContent = "✕ Lỗi mạng";
-        syncStatus.style.background = "#fbeee0";
-        syncStatus.style.color = "#e74c3c";
+        syncStatus.textContent = "✕ Lỗi mạng"; syncStatus.style.background = "#fbeee0"; syncStatus.style.color = "#e74c3c";
     }
 }
 
@@ -34,14 +29,10 @@ async function toggleSelection(fileName) {
     updateUI(); updateCardState(fileName);
 
     try {
-        syncStatus.style.opacity = '1';
-        syncStatus.textContent = "Đang lưu...";
+        syncStatus.style.opacity = '1'; syncStatus.textContent = "Đang lưu...";
         syncStatus.style.background = "#fff3cd"; syncStatus.style.color = "#856404";
-
         await fetch(`${API_URL}?action=${action}&file=${encodeURIComponent(fileName)}`);
-
-        syncStatus.textContent = "✓ Đã lưu";
-        syncStatus.style.background = "#e8f8f5"; syncStatus.style.color = "#27ae60";
+        syncStatus.textContent = "✓ Đã lưu"; syncStatus.style.background = "#e8f8f5"; syncStatus.style.color = "#27ae60";
         setTimeout(() => syncStatus.style.opacity = '0', 2000);
     } catch (e) { console.error("Lỗi đồng bộ"); }
 }
@@ -61,9 +52,7 @@ function preloadHighRes(index) {
     if (index >= 0 && index < imageList.length) {
         const id = imageList[index].id;
         if (!preloadedImages.has(id)) {
-            const img = new Image();
-            img.src = `https://drive.google.com/thumbnail?id=${id}&sz=s2500`;
-            preloadedImages.add(id);
+            const img = new Image(); img.src = `https://drive.google.com/thumbnail?id=${id}&sz=s2500`; preloadedImages.add(id);
         }
     }
 }
@@ -120,8 +109,7 @@ lbImg.addEventListener('wheel', (e) => {
     e.preventDefault();
     let newScale = Math.max(1, Math.min(scale * (e.deltaY < 0 ? 1.15 : 0.85), 20));
     const ratio = 1 - newScale / scale;
-    currentX += (e.clientX - window.innerWidth / 2 - currentX) * ratio;
-    currentY += (e.clientY - window.innerHeight / 2 - currentY) * ratio;
+    currentX += (e.clientX - window.innerWidth / 2 - currentX) * ratio; currentY += (e.clientY - window.innerHeight / 2 - currentY) * ratio;
     scale = newScale;
 
     scale > 1 ? lbImg.classList.add('zoomed') : (lbImg.classList.remove('zoomed'), currentX = 0, currentY = 0);
@@ -171,7 +159,16 @@ const removePointer = (e) => {
 };
 
 lbImg.addEventListener('pointerup', (e) => {
-    const isClick = pointers.length === 1 && !wasPinching && Math.hypot(e.clientX - clickStartX, e.clientY - clickStartY) < 5;
+    // Tính khoảng cách ngón tay đã di chuyển
+    const deltaX = e.clientX - clickStartX;
+    const deltaY = e.clientY - clickStartY;
+    const distance = Math.hypot(deltaX, deltaY);
+
+    const isClick = pointers.length === 1 && !wasPinching && distance < 5;
+
+    // NHẬN DIỆN VUỐT (SWIPE): Vuốt ngang > 50px khi ảnh không bị zoom
+    const isSwipe = pointers.length === 1 && !wasPinching && scale === 1 && Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY);
+
     removePointer(e); lbImg.releasePointerCapture(e.pointerId);
 
     if (isClick) {
@@ -185,6 +182,14 @@ lbImg.addEventListener('pointerup', (e) => {
             } else resetZoom();
             lastTapTime = 0;
         } else lastTapTime = now;
+    }
+    else if (isSwipe) {
+        // Thực thi chuyển ảnh khi người dùng vuốt
+        if (deltaX > 0 && currentIndex > 0) {
+            openLightbox(currentIndex - 1); // Vuốt sang phải -> Ảnh trước
+        } else if (deltaX < 0 && currentIndex < imageList.length - 1) {
+            openLightbox(currentIndex + 1); // Vuốt sang trái -> Ảnh sau
+        }
     }
 });
 lbImg.addEventListener('pointercancel', (e) => { removePointer(e); lbImg.releasePointerCapture(e.pointerId); });
@@ -222,13 +227,21 @@ document.getElementById('lb-download').addEventListener('click', async () => {
     btn.innerHTML = originalIcon; btn.style.pointerEvents = 'auto';
 });
 
-// 5. NÚT ĐIỀU HƯỚNG & KHỞI CHẠY
+// 5. BÀN PHÍM, ĐIỀU HƯỚNG & KHỞI CHẠY
 document.getElementById('lb-prev').addEventListener('click', () => { if (currentIndex > 0) openLightbox(currentIndex - 1); });
 document.getElementById('lb-next').addEventListener('click', () => { if (currentIndex < imageList.length - 1) openLightbox(currentIndex + 1); });
 lbHeart.addEventListener('click', () => toggleSelection(imageList[currentIndex].name));
 const closeLightbox = () => { lb.classList.add('hidden'); currentIndex = -1; document.body.style.overflow = ''; };
 document.getElementById('lb-close').addEventListener('click', closeLightbox);
 lb.addEventListener('click', (e) => { if (e.target === lb || e.target.classList.contains('lb-content')) closeLightbox(); });
+
+// Hỗ trợ Bàn phím (Mũi tên & ESC)
+document.addEventListener('keydown', (e) => {
+    if (currentIndex === -1) return; // Bỏ qua nếu không mở ảnh lớn
+    if (e.key === 'ArrowLeft' && currentIndex > 0) openLightbox(currentIndex - 1);
+    else if (e.key === 'ArrowRight' && currentIndex < imageList.length - 1) openLightbox(currentIndex + 1);
+    else if (e.key === 'Escape') closeLightbox();
+});
 
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof imageList !== 'undefined' && imageList.length > 0 && API_URL.includes('script.google.com')) fetchSelections();

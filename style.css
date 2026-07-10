@@ -11,12 +11,14 @@
     padding: 0;
 }
 
+/* touch-action: manipulation giúp tắt tính năng nhấp đúp tự zoom lỗi của điện thoại */
 body {
     font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     background: var(--bg);
     color: var(--text);
     padding-top: 70px;
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 }
 
 /* Header mờ kiểu Glassmorphism */
@@ -56,13 +58,10 @@ body {
     background: #e8f8f5;
     padding: 4px 10px;
     border-radius: 20px;
+    transition: opacity 0.3s;
 }
 
-/* 
-  HỆ THỐNG GRID RESPONSIVE HOÀN HẢO 
-  - Mobile: Tối thiểu 160px (Ảnh to hơn, chia 2 cột đẹp)
-  - Tablet/PC: Tự động scale to lên
-*/
+/* HỆ THỐNG GRID RESPONSIVE */
 .gallery-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -72,7 +71,6 @@ body {
     margin: 0 auto;
 }
 
-/* Breakpoint cho Tablet */
 @media (min-width: 768px) {
     .gallery-container {
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -81,7 +79,6 @@ body {
     }
 }
 
-/* Breakpoint cho Desktop / Màn hình lớn (Ảnh cực to) */
 @media (min-width: 1024px) {
     .gallery-container {
         grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -90,14 +87,13 @@ body {
     }
 }
 
-/* Thẻ chứa ảnh (Card) */
+/* Thẻ chứa ảnh */
 .image-card {
     position: relative;
     border-radius: 12px;
     overflow: hidden;
     background: var(--card-bg);
     aspect-ratio: 4/5;
-    /* Tỷ lệ vàng cho ảnh chân dung & nghệ thuật */
     cursor: pointer;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     transition: transform 0.25s, box-shadow 0.25s;
@@ -115,7 +111,6 @@ body {
     transition: opacity 0.3s, transform 0.4s;
 }
 
-/* Trạng thái được chọn */
 .image-card.selected img {
     opacity: 0.85;
     transform: scale(0.96);
@@ -130,7 +125,6 @@ body {
     pointer-events: none;
 }
 
-/* Nút thả tim tối ưu cảm ứng (Tối thiểu 44x44px) */
 .heart-btn {
     position: absolute;
     bottom: 12px;
@@ -159,7 +153,7 @@ body {
     box-shadow: 0 4px 12px rgba(255, 71, 87, 0.3);
 }
 
-/* --- LIGHTBOX (Xem ảnh siêu to) --- */
+/* LIGHTBOX */
 .lightbox {
     position: fixed;
     inset: 0;
@@ -188,19 +182,27 @@ body {
     padding: 20px 0;
 }
 
-/* Ảnh trong Lightbox chiếm tối đa diện tích */
 .lb-content img {
     max-width: 95vw;
     max-height: 85vh;
     object-fit: contain;
     border-radius: 4px;
     cursor: zoom-in;
-    transition: transform 0.3s;
+    will-change: transform, filter;
+    transition: transform 0.3s cubic-bezier(0.2, 0, 0.2, 1), filter 0.4s ease;
+    touch-action: none;
 }
 
 .lb-content img.zoomed {
-    transform: scale(2);
-    cursor: zoom-out;
+    cursor: grab;
+}
+
+.lb-content img.zoomed:active {
+    cursor: grabbing;
+}
+
+.lb-content img.loading-high-res {
+    filter: blur(8px);
 }
 
 .lb-close {
@@ -246,6 +248,7 @@ body {
     right: 10px;
 }
 
+/* Thanh Toolbar và Nút Actions */
 .lb-toolbar {
     display: flex;
     justify-content: space-between;
@@ -264,50 +267,31 @@ body {
     font-weight: 500;
 }
 
+.lb-actions {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.action-btn,
 .heart-btn.large {
     position: static;
     width: 54px;
     height: 54px;
-    font-size: 30px;
+    font-size: 26px;
     background: rgba(255, 255, 255, 0.15);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    transition: transform 0.2s, background 0.2s;
 }
 
-/* Tối ưu hiệu ứng chuyển đổi độ nét */
-.lb-content img {
-    will-change: transform, filter;
-    /* Báo cho GPU biết để ưu tiên xử lý mượt */
-    transition: transform 0.3s cubic-bezier(0.2, 0, 0.2, 1), filter 0.4s ease;
-}
-
-/* Class này được dùng khi đang tải ảnh gốc */
-.lb-content img.loading-high-res {
-    filter: blur(8px);
-}
-
-/* Ảnh trong Lightbox chiếm tối đa diện tích */
-.lb-content img {
-    max-width: 95vw;
-    max-height: 85vh;
-    object-fit: contain;
-    border-radius: 4px;
-    cursor: zoom-in;
-    will-change: transform, filter;
-    transition: transform 0.3s cubic-bezier(0.2, 0, 0.2, 1), filter 0.4s ease;
-
-    /* BẮT BUỘC: Ngăn trình duyệt điện thoại cuộn trang khi đang kéo ảnh */
-    touch-action: none;
-}
-
-/* Khi đã phóng to, đổi trỏ chuột thành hình bàn tay (Grab) */
-.lb-content img.zoomed {
-    cursor: grab;
-}
-
-/* Khi đang giữ chuột/ngón tay để kéo (Grabbing) */
-.lb-content img.zoomed:active {
-    cursor: grabbing;
-}
-
-.lb-content img.loading-high-res {
-    filter: blur(8px);
+.action-btn:active {
+    transform: scale(0.9);
+    background: rgba(255, 255, 255, 0.3);
 }

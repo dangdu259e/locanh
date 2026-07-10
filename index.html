@@ -26,12 +26,17 @@
             <img id="lb-img" src="" alt="Zoomed Image">
             <div class="lb-toolbar">
                 <span id="lb-title" class="lb-title"></span>
-                <button id="lb-heart" class="heart-btn large">❤️</button>
+                <div class="lb-actions">
+                    <!-- Nút tải ảnh iOS/PC -->
+                    <button id="lb-download" class="action-btn" aria-label="Tải ảnh xuống">⬇️</button>
+                    <!-- Nút thả tim lớn -->
+                    <button id="lb-heart" class="heart-btn large">❤️</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Nhúng File Dữ liệu TRƯỚC, File Logic SAU -->
+    <!-- Nhúng dữ liệu trước, logic sau -->
     <script src="danh_sach_anh.js"></script>
     <script src="script.js"></script>
 </body>

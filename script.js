@@ -1,6 +1,3 @@
-// ĐIỀN LINK WEB APP GOOGLE SHEETS CỦA BẠN VÀO ĐÂY:
-const API_URL = 'https://script.google.com/macros/s/AKfycbwE76XEp9p0DhR7AQRhIL-y1FDXKSnglFIGNvr0uJgvCOQA1TxeyCD_3ZsXbEpJH2TGSg/exec';
-
 let selectedImages = new Set();
 let currentIndex = -1;
 
@@ -47,7 +44,7 @@ const updateCardState = (fileName) => {
     }
 };
 
-// 2. RENDER GRID & PRELOAD
+// 2. RENDER & TẢI TRƯỚC (PREFETCH)
 function preloadHighRes(index) {
     if (index >= 0 && index < imageList.length) {
         const id = imageList[index].id;
@@ -65,10 +62,13 @@ const renderGallery = () => {
         const card = document.createElement('div');
         card.className = `image-card ${selectedImages.has(img.name) ? 'selected' : ''}`;
         card.dataset.name = img.name;
+
+        // Dùng w800 cho PC hiển thị nét, Mobile load nhanh
         const thumbUrl = `https://drive.google.com/thumbnail?id=${img.id}&sz=w800`;
 
         card.innerHTML = `<img src="${thumbUrl}" alt="${img.name}" loading="lazy"><button class="heart-btn" aria-label="Chọn ảnh">❤️</button>`;
 
+        // Cảm biến chuột cho PC (Chuẩn bị ảnh trước khi click)
         let hoverTimer;
         card.addEventListener('mouseenter', () => { hoverTimer = setTimeout(() => preloadHighRes(index), 150); });
         card.addEventListener('mouseleave', () => clearTimeout(hoverTimer));
@@ -80,7 +80,7 @@ const renderGallery = () => {
     gallery.appendChild(fragment);
 };
 
-// 3. HỆ THỐNG LIGHTBOX & ZOOM ĐA ĐIỂM
+// 3. ENGINE ZOOM & ĐIỀU KHIỂN (CẢM ỨNG + CHUỘT)
 const lb = document.getElementById('lightbox'), lbImg = document.getElementById('lb-img');
 const lbTitle = document.getElementById('lb-title'), lbHeart = document.getElementById('lb-heart');
 
@@ -96,7 +96,10 @@ function openLightbox(index) {
     lbImg.classList.add('loading-high-res');
     lbTitle.textContent = img.name;
     selectedImages.has(img.name) ? lbHeart.classList.add('active') : lbHeart.classList.remove('active');
-    lb.classList.remove('hidden'); document.body.style.overflow = 'hidden';
+    lb.classList.remove('hidden');
+
+    // Khóa cuộn background trên iOS và Windows
+    document.body.style.overflow = 'hidden';
 
     const highResUrl = `https://drive.google.com/thumbnail?id=${img.id}&sz=s2500`;
     const tempImg = new Image(); tempImg.src = highResUrl;
@@ -104,7 +107,7 @@ function openLightbox(index) {
     preloadHighRes(index + 1); preloadHighRes(index - 1);
 }
 
-// Lăn chuột PC
+// Xử lý Lăn chuột PC (Zoom in/out tại điểm chuột)
 lbImg.addEventListener('wheel', (e) => {
     e.preventDefault();
     let newScale = Math.max(1, Math.min(scale * (e.deltaY < 0 ? 1.15 : 0.85), 20));
@@ -119,7 +122,7 @@ lbImg.addEventListener('wheel', (e) => {
     lbImg.wheelTimeout = setTimeout(() => lbImg.style.transition = 'transform 0.3s cubic-bezier(0.2, 0, 0.2, 1)', 50);
 }, { passive: false });
 
-// Chạm & Vuốt Mobile
+// Xử lý Cảm ứng Đa điểm (Mobile/iPad)
 lbImg.addEventListener('pointerdown', (e) => {
     e.preventDefault(); pointers.push(e); lbImg.setPointerCapture(e.pointerId);
     if (pointers.length === 1) {
@@ -159,85 +162,78 @@ const removePointer = (e) => {
 };
 
 lbImg.addEventListener('pointerup', (e) => {
-    // Tính khoảng cách ngón tay đã di chuyển
-    const deltaX = e.clientX - clickStartX;
-    const deltaY = e.clientY - clickStartY;
+    const deltaX = e.clientX - clickStartX; const deltaY = e.clientY - clickStartY;
     const distance = Math.hypot(deltaX, deltaY);
-
     const isClick = pointers.length === 1 && !wasPinching && distance < 5;
 
-    // NHẬN DIỆN VUỐT (SWIPE): Vuốt ngang > 50px khi ảnh không bị zoom
-    const isSwipe = pointers.length === 1 && !wasPinching && scale === 1 && Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY);
+    // Nhận diện vuốt (Swipe) mượt mà trên iPhone/iPad
+    const isSwipe = pointers.length === 1 && !wasPinching && scale === 1 && Math.abs(deltaX) > 60 && Math.abs(deltaX) > Math.abs(deltaY);
 
     removePointer(e); lbImg.releasePointerCapture(e.pointerId);
 
     if (isClick) {
         const now = Date.now(), tapLen = now - lastTapTime;
-        if (tapLen < 300 && tapLen > 0) {
+        if (tapLen < 300 && tapLen > 0) { // Double Tap iOS Style
             if (scale === 1) {
                 scale = 3; lbImg.classList.add('zoomed');
                 const ratio = 1 - scale;
                 currentX += (e.clientX - window.innerWidth / 2 - currentX) * ratio; currentY += (e.clientY - window.innerHeight / 2 - currentY) * ratio;
-                lbImg.style.transition = 'transform 0.3s'; lbImg.style.transform = `translate(${currentX}px, ${currentY}px) scale(${scale})`;
+                lbImg.style.transition = 'transform 0.3s cubic-bezier(0.2, 0, 0.2, 1)';
+                lbImg.style.transform = `translate(${currentX}px, ${currentY}px) scale(${scale})`;
             } else resetZoom();
             lastTapTime = 0;
         } else lastTapTime = now;
     }
     else if (isSwipe) {
-        // Thực thi chuyển ảnh khi người dùng vuốt
-        if (deltaX > 0 && currentIndex > 0) {
-            openLightbox(currentIndex - 1); // Vuốt sang phải -> Ảnh trước
-        } else if (deltaX < 0 && currentIndex < imageList.length - 1) {
-            openLightbox(currentIndex + 1); // Vuốt sang trái -> Ảnh sau
-        }
+        if (deltaX > 0 && currentIndex > 0) openLightbox(currentIndex - 1); // Vuốt phải
+        else if (deltaX < 0 && currentIndex < imageList.length - 1) openLightbox(currentIndex + 1); // Vuốt trái
     }
 });
 lbImg.addEventListener('pointercancel', (e) => { removePointer(e); lbImg.releasePointerCapture(e.pointerId); });
 
-// 4. XỬ LÝ TẢI ẢNH (iOS & PC)
-document.getElementById('lb-download').addEventListener('click', async () => {
+// 4. XỬ LÝ TẢI ẢNH GỐC (DUNG LƯỢNG 100%)
+document.getElementById('lb-download').addEventListener('click', () => {
     const img = imageList[currentIndex];
-    const btn = document.getElementById('lb-download');
-    const originalIcon = btn.innerHTML;
-    btn.innerHTML = '⏳'; btn.style.pointerEvents = 'none';
 
-    try {
-        const highResUrl = `https://drive.google.com/thumbnail?id=${img.id}&sz=s2500`;
-        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(highResUrl)}`;
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error("CORS Proxy Error");
+    // Nhận diện iPhone/iPad để xử lý riêng
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-        const blob = await response.blob();
-        const file = new File([blob], img.name, { type: blob.type || 'image/jpeg' });
+    if (isIOS) {
+        const guideDiv = document.createElement('div');
+        guideDiv.className = 'ios-download-guide';
+        const originalViewUrl = `https://drive.google.com/uc?export=view&id=${img.id}`;
 
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({ files: [file], title: img.name });
-        } else {
-            const blobUrl = URL.createObjectURL(blob); const a = document.createElement('a');
-            a.href = blobUrl; a.download = img.name; document.body.appendChild(a);
-            a.click(); document.body.removeChild(a); URL.revokeObjectURL(blobUrl);
-        }
-    } catch (error) {
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        if (isIOS) {
-            alert("iPhone: Bạn hãy [Ấn Giữ] vào bức ảnh hiện ra và chọn 'Lưu vào ảnh' (Save to Photos).");
-            window.open(`https://drive.google.com/thumbnail?id=${img.id}&sz=s2500`, '_blank');
-        } else window.open(`https://drive.google.com/uc?export=download&id=${img.id}`, '_blank');
+        guideDiv.innerHTML = `
+            <div class="ios-guide-text">👇 CÔ/CHÚ ẤN GIỮ VÀO ẢNH DƯỚI ĐÂY 3 GIÂY RỒI CHỌN "LƯU VÀO ẢNH" 👇</div>
+            <img src="${originalViewUrl}" alt="Ảnh cần tải">
+            <button class="ios-guide-close">Xong / Đóng</button>
+        `;
+        document.body.appendChild(guideDiv);
+
+        guideDiv.querySelector('.ios-guide-close').addEventListener('click', () => document.body.removeChild(guideDiv));
+    } else {
+        // Tải ẩn tự động cho Win 11 / Android
+        const a = document.createElement('a');
+        a.href = `https://drive.google.com/uc?export=download&id=${img.id}`;
+        a.setAttribute('download', img.name);
+        a.style.display = 'none';
+
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
-    btn.innerHTML = originalIcon; btn.style.pointerEvents = 'auto';
 });
 
-// 5. BÀN PHÍM, ĐIỀU HƯỚNG & KHỞI CHẠY
+// 5. BÀN PHÍM WIN 11, ĐIỀU HƯỚNG & KHỞI CHẠY
 document.getElementById('lb-prev').addEventListener('click', () => { if (currentIndex > 0) openLightbox(currentIndex - 1); });
 document.getElementById('lb-next').addEventListener('click', () => { if (currentIndex < imageList.length - 1) openLightbox(currentIndex + 1); });
 lbHeart.addEventListener('click', () => toggleSelection(imageList[currentIndex].name));
+
 const closeLightbox = () => { lb.classList.add('hidden'); currentIndex = -1; document.body.style.overflow = ''; };
 document.getElementById('lb-close').addEventListener('click', closeLightbox);
 lb.addEventListener('click', (e) => { if (e.target === lb || e.target.classList.contains('lb-content')) closeLightbox(); });
 
-// Hỗ trợ Bàn phím (Mũi tên & ESC)
+// Hỗ trợ Bàn phím Win 11 (Mũi tên & ESC)
 document.addEventListener('keydown', (e) => {
-    if (currentIndex === -1) return; // Bỏ qua nếu không mở ảnh lớn
+    if (currentIndex === -1) return;
     if (e.key === 'ArrowLeft' && currentIndex > 0) openLightbox(currentIndex - 1);
     else if (e.key === 'ArrowRight' && currentIndex < imageList.length - 1) openLightbox(currentIndex + 1);
     else if (e.key === 'Escape') closeLightbox();

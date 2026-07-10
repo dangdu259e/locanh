@@ -3,8 +3,13 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DU VÀ THƯ</title>
+    <!-- Tối ưu hóa đa nền tảng, chống zoom rác trên iOS -->
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <!-- Biến trang web thành dạng App khi thêm vào màn hình chính iPhone -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>DU ❤️ THƯ</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -18,26 +23,27 @@
 
     <!-- Modal Lightbox (Xem ảnh toàn màn hình) -->
     <div id="lightbox" class="lightbox hidden">
-        <button class="lb-close" id="lb-close">✕</button>
-        <button class="lb-nav lb-prev" id="lb-prev">❮</button>
-        <button class="lb-nav lb-next" id="lb-next">❯</button>
+        <button class="lb-close" id="lb-close" aria-label="Đóng">✕</button>
+        <button class="lb-nav lb-prev" id="lb-prev" aria-label="Ảnh trước">❮</button>
+        <button class="lb-nav lb-next" id="lb-next" aria-label="Ảnh tiếp">❯</button>
 
         <div class="lb-content">
             <img id="lb-img" src="" alt="Zoomed Image">
             <div class="lb-toolbar">
                 <span id="lb-title" class="lb-title"></span>
                 <div class="lb-actions">
-                    <!-- Nút tải ảnh iOS/PC -->
-                    <button id="lb-download" class="action-btn" aria-label="Tải ảnh xuống">⬇️</button>
-                    <!-- Nút thả tim lớn -->
-                    <button id="lb-heart" class="heart-btn large">❤️</button>
+                    <button id="lb-download" class="action-btn" aria-label="Tải ảnh gốc">⬇️</button>
+                    <button id="lb-heart" class="heart-btn large" aria-label="Yêu thích">❤️</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Nhúng dữ liệu trước, logic sau -->
+    <!-- 1. Gọi dữ liệu ảnh -->
     <script src="danh_sach_anh.js"></script>
+    <!-- 2. Gọi cấu hình hệ thống -->
+    <script src="config.js"></script>
+    <!-- 3. Chạy logic điều khiển (để cuối cùng để nó có thể đọc được dữ liệu của 2 file trên) -->
     <script src="script.js"></script>
 </body>
 
